@@ -1,5 +1,6 @@
 package com.ade.fuzzyrisk.ui.screens
 
+import android.util.Patterns
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,17 +39,23 @@ import com.ade.fuzzyrisk.ui.components.AuthScaffold
 import com.ade.fuzzyrisk.ui.components.AuthTextField
 import com.ade.fuzzyrisk.ui.components.PasswordToggleField
 import com.ade.fuzzyrisk.ui.components.RegisterAuthScaffold
+import com.ade.fuzzyrisk.auth.AuthActionResult
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLogin: () -> Unit,
-    onForgotPassword: () -> Unit,
+    onLogin: suspend (String, String) -> AuthActionResult,
+    onForgotPassword: suspend (String) -> AuthActionResult,
     onRegister: () -> Unit
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
+    var message by rememberSaveable { mutableStateOf<String?>(null) }
+    var isError by rememberSaveable { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
 
     AuthScaffold {
         AppLogo(96.dp)
@@ -72,22 +80,74 @@ fun LoginScreen(
             visible = passwordVisible,
             onToggleVisible = { passwordVisible = !passwordVisible }
         )
-        TextButton(onClick = onForgotPassword, modifier = Modifier.align(Alignment.End)) {
+        AuthMessage(message = message, isError = isError)
+        TextButton(
+            onClick = {
+                val trimmedEmail = email.trim()
+                val validationMessage = validateResetPasswordInput(trimmedEmail)
+
+                if (validationMessage != null) {
+                    message = validationMessage
+                    isError = true
+                } else {
+                    scope.launch {
+                        isLoading = true
+                        message = null
+                        val result = onForgotPassword(trimmedEmail)
+                        isLoading = false
+
+                        when (result) {
+                            is AuthActionResult.Success -> {
+                                message = "Link reset password sudah dikirim ke email Anda."
+                                isError = false
+                            }
+                            is AuthActionResult.Error -> {
+                                message = result.message
+                                isError = true
+                            }
+                        }
+                    }
+                }
+            },
+            enabled = !isLoading,
+            modifier = Modifier.align(Alignment.End)
+        ) {
             Text("Lupa password?")
         }
         Spacer(Modifier.height(20.dp))
         Button(
-            onClick = onLogin,
+            onClick = {
+                val trimmedEmail = email.trim()
+                val validationMessage = validateLoginInput(trimmedEmail, password)
+
+                if (validationMessage != null) {
+                    message = validationMessage
+                    isError = true
+                } else {
+                    scope.launch {
+                        isLoading = true
+                        message = null
+                        val result = onLogin(trimmedEmail, password)
+                        isLoading = false
+
+                        if (result is AuthActionResult.Error) {
+                            message = result.message
+                            isError = true
+                        }
+                    }
+                }
+            },
+            enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
         ) {
-            Text("Login", fontWeight = FontWeight.Bold)
+            Text(if (isLoading) "Memproses..." else "Login", fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(22.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Belum punya akun?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onRegister) {
+            TextButton(onClick = onRegister, enabled = !isLoading) {
                 Text("Daftar", fontWeight = FontWeight.Bold)
             }
         }
@@ -96,7 +156,7 @@ fun LoginScreen(
 
 @Composable
 fun RegisterScreen(
-    onRegister: () -> Unit,
+    onRegister: suspend (String, String, String) -> AuthActionResult,
     onLogin: () -> Unit
 ) {
     var fullName by rememberSaveable { mutableStateOf("") }
@@ -107,9 +167,12 @@ fun RegisterScreen(
     var role by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
+    var message by rememberSaveable { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     RegisterAuthScaffold {
-        IconButton(onClick = onLogin) {
+        IconButton(onClick = onLogin, enabled = !isLoading) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Kembali",
@@ -171,14 +234,40 @@ fun RegisterScreen(
             placeholder = "Pilih peran Anda",
             onClick = { role = if (role == "Pemilik Toko") "Admin Penjualan" else "Pemilik Toko" }
         )
+        AuthMessage(message = message, isError = true)
         Spacer(Modifier.height(32.dp))
         Button(
-            onClick = onRegister,
+            onClick = {
+                val trimmedName = fullName.trim()
+                val trimmedEmail = email.trim()
+                val validationMessage = validateRegisterInput(
+                    fullName = trimmedName,
+                    email = trimmedEmail,
+                    password = password,
+                    confirmPassword = confirmPassword
+                )
+
+                if (validationMessage != null) {
+                    message = validationMessage
+                } else {
+                    scope.launch {
+                        isLoading = true
+                        message = null
+                        val result = onRegister(trimmedName, trimmedEmail, password)
+                        isLoading = false
+
+                        if (result is AuthActionResult.Error) {
+                            message = result.message
+                        }
+                    }
+                }
+            },
+            enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
         ) {
-            Text("Daftar", fontWeight = FontWeight.Bold)
+            Text(if (isLoading) "Memproses..." else "Daftar", fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(22.dp))
         Row(
@@ -186,10 +275,56 @@ fun RegisterScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Sudah punya akun?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onLogin) {
+            TextButton(onClick = onLogin, enabled = !isLoading) {
                 Text("Login", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
         }
+    }
+}
+
+@Composable
+private fun AuthMessage(message: String?, isError: Boolean) {
+    if (message == null) return
+
+    Spacer(Modifier.height(10.dp))
+    Text(
+        text = message,
+        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        textAlign = TextAlign.Center,
+        lineHeight = 19.sp
+    )
+}
+
+private fun validateLoginInput(email: String, password: String): String? {
+    return when {
+        email.isBlank() -> "Email wajib diisi."
+        !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Format email belum valid."
+        password.isBlank() -> "Password wajib diisi."
+        else -> null
+    }
+}
+
+private fun validateResetPasswordInput(email: String): String? {
+    return when {
+        email.isBlank() -> "Isi email dulu untuk reset password."
+        !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Format email belum valid."
+        else -> null
+    }
+}
+
+private fun validateRegisterInput(
+    fullName: String,
+    email: String,
+    password: String,
+    confirmPassword: String
+): String? {
+    return when {
+        fullName.isBlank() -> "Nama lengkap wajib diisi."
+        email.isBlank() -> "Email wajib diisi."
+        !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Format email belum valid."
+        password.length < 6 -> "Password minimal 6 karakter."
+        password != confirmPassword -> "Konfirmasi password belum sama."
+        else -> null
     }
 }
 

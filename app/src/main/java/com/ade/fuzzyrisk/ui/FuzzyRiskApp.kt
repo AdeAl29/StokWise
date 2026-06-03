@@ -4,11 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.ade.fuzzyrisk.auth.AuthActionResult
+import com.ade.fuzzyrisk.auth.FirebaseAuthRepository
 import com.ade.fuzzyrisk.ui.screens.AboutScreen
 import com.ade.fuzzyrisk.ui.screens.CategoryScreen
 import com.ade.fuzzyrisk.ui.screens.DashboardScreen
@@ -34,6 +37,7 @@ fun FuzzyRiskApp(
     viewModel: FuzzyRiskViewModel = viewModel()
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
 
     fun openApp() {
@@ -47,14 +51,28 @@ fun FuzzyRiskApp(
     NavHost(navController = navController, startDestination = if (loggedIn) "dashboard" else "login") {
         composable("login") {
             LoginScreen(
-                onLogin = ::openApp,
-                onForgotPassword = ::openApp,
+                onLogin = { email, password ->
+                    val result = FirebaseAuthRepository.signIn(context, email, password)
+                    if (result is AuthActionResult.Success) {
+                        openApp()
+                    }
+                    result
+                },
+                onForgotPassword = { email ->
+                    FirebaseAuthRepository.sendPasswordReset(context, email)
+                },
                 onRegister = { navController.navigate("register") }
             )
         }
         composable("register") {
             RegisterScreen(
-                onRegister = ::openApp,
+                onRegister = { fullName, email, password ->
+                    val result = FirebaseAuthRepository.register(context, fullName, email, password)
+                    if (result is AuthActionResult.Success) {
+                        openApp()
+                    }
+                    result
+                },
                 onLogin = { navController.popBackStack() }
             )
         }

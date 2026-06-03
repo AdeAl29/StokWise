@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.ade.fuzzyrisk" />
+                  <option name="mobileSdkAppId" value="1:347813537730:android:336c12034510788e34d85b" />
+                  <option name="projectId" value="fuzzyrisk-4256f" />
+                  <option name="projectNumber" value="347813537730" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

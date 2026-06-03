@@ -11,12 +11,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import com.ade.fuzzyrisk.auth.FirebaseAuthRepository
 import com.ade.fuzzyrisk.ui.FuzzyRiskApp
 import com.ade.fuzzyrisk.ui.theme.FuzzyRiskTheme
 
 private const val PREFS_NAME = "fuzzy_risk_settings"
 private const val PREF_DARK_THEME = "dark_theme"
-private const val PREF_LOGGED_IN = "logged_in"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
             var darkTheme by rememberSaveable { mutableStateOf(prefs.getBoolean(PREF_DARK_THEME, false)) }
-            var loggedIn by rememberSaveable { mutableStateOf(prefs.getBoolean(PREF_LOGGED_IN, false)) }
+            var loggedIn by rememberSaveable { mutableStateOf(FirebaseAuthRepository.isSignedIn(context)) }
 
             FuzzyRiskTheme(darkTheme = darkTheme) {
                 FuzzyRiskApp(
@@ -34,11 +34,10 @@ class MainActivity : ComponentActivity() {
                     darkTheme = darkTheme,
                     onLoginSuccess = {
                         loggedIn = true
-                        prefs.edit().putBoolean(PREF_LOGGED_IN, true).apply()
                     },
                     onLogout = {
+                        FirebaseAuthRepository.signOut(context)
                         loggedIn = false
-                        prefs.edit().putBoolean(PREF_LOGGED_IN, false).apply()
                     },
                     onThemeChange = { enabled ->
                         darkTheme = enabled

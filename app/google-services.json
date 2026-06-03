@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "347813537730",
+    "project_id": "fuzzyrisk-4256f",
+    "storage_bucket": "fuzzyrisk-4256f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:347813537730:android:336c12034510788e34d85b",
+        "android_client_info": {
+          "package_name": "com.ade.fuzzyrisk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYplIzporZV_q5BeIx5AI0CZ0aWGc0pEA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
