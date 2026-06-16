@@ -57,12 +57,16 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.ade.fuzzyrisk.data.SalesRecord
 import com.ade.fuzzyrisk.domain.FuzzyResult
+import com.ade.fuzzyrisk.ui.buildPhoneType
 import com.ade.fuzzyrisk.ui.BottomItem
 import com.ade.fuzzyrisk.ui.Danger
+import com.ade.fuzzyrisk.ui.IndonesianPhoneBrands
 import com.ade.fuzzyrisk.ui.NumberFormat
 import com.ade.fuzzyrisk.ui.Success
 import com.ade.fuzzyrisk.ui.Warning
 import com.ade.fuzzyrisk.ui.dateText
+import com.ade.fuzzyrisk.ui.phoneRecordGroups
+import com.ade.fuzzyrisk.ui.phoneModelsForBrand
 import com.ade.fuzzyrisk.ui.riskColor
 import com.ade.fuzzyrisk.ui.riskFromZ
 import com.ade.fuzzyrisk.ui.components.AppCard
@@ -74,6 +78,9 @@ import com.ade.fuzzyrisk.ui.components.FuzzyGraphSection
 import com.ade.fuzzyrisk.ui.components.InsightCard
 import com.ade.fuzzyrisk.ui.components.MenuCard
 import com.ade.fuzzyrisk.ui.components.NumberField
+import com.ade.fuzzyrisk.ui.components.PhoneBrandDropdownField
+import com.ade.fuzzyrisk.ui.components.PhoneBrandHeader
+import com.ade.fuzzyrisk.ui.components.PhoneModelDropdownField
 import com.ade.fuzzyrisk.ui.components.PhoneRiskOverview
 import com.ade.fuzzyrisk.ui.components.ProcessCard
 import com.ade.fuzzyrisk.ui.components.RecordCard
@@ -83,7 +90,6 @@ import com.ade.fuzzyrisk.ui.components.RiskSummaryBox
 import com.ade.fuzzyrisk.ui.components.SimpleTopBar
 import com.ade.fuzzyrisk.ui.components.SummaryCard
 import com.ade.fuzzyrisk.ui.components.SummaryRow
-import com.ade.fuzzyrisk.ui.components.TextInputField
 import com.ade.fuzzyrisk.ui.components.ThemeSettingsCard
 import com.ade.fuzzyrisk.ui.components.ThemeToggleButton
 import com.ade.fuzzyrisk.ui.components.TrendChart
@@ -193,12 +199,14 @@ fun InputScreen(
     onCalculate: (Int, Int, Int) -> FuzzyResult,
     onSave: (String, Int, Int, Int, FuzzyResult) -> Unit
 ) {
-    var phoneType by rememberSaveable { mutableStateOf("") }
+    var phoneBrand by rememberSaveable { mutableStateOf("") }
+    var phoneModel by rememberSaveable { mutableStateOf("") }
     var sales by rememberSaveable { mutableStateOf("") }
     var stock by rememberSaveable { mutableStateOf("") }
     var demand by rememberSaveable { mutableStateOf("") }
     var result by remember { mutableStateOf<FuzzyResult?>(null) }
     var error by rememberSaveable { mutableStateOf("") }
+    val phoneModelOptions = remember(phoneBrand) { phoneModelsForBrand(phoneBrand) }
 
     Scaffold(
         topBar = { SimpleTopBar("Input Data Baru", onBack) },
@@ -212,14 +220,29 @@ fun InputScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                Text("Masukkan jenis HP dan data penjualan untuk menghitung tingkat risikonya.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Pilih merek dan tipe HP dari daftar 2025/2026, lalu masukkan data penjualan untuk menghitung tingkat risikonya.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             item {
-                TextInputField(
-                    "Jenis HP",
-                    "Contoh: Samsung A15, iPhone 13, Redmi Note 13",
-                    phoneType
-                ) { phoneType = it }
+                PhoneBrandDropdownField(
+                    label = "Merek HP",
+                    placeholder = "Pilih merek HP",
+                    brands = IndonesianPhoneBrands,
+                    selectedBrand = phoneBrand,
+                    onBrandSelected = {
+                        phoneBrand = it
+                        phoneModel = ""
+                    }
+                )
+            }
+            item {
+                PhoneModelDropdownField(
+                    label = "Tipe / Model HP",
+                    placeholder = if (phoneBrand.isBlank()) "Pilih merek HP dulu" else "Pilih tipe/model HP",
+                    models = phoneModelOptions,
+                    selectedModel = phoneModel,
+                    enabled = phoneBrand.isNotBlank(),
+                    onModelSelected = { phoneModel = it }
+                )
             }
             item { NumberField("Jumlah Penjualan (unit)", "Masukkan jumlah penjualan", sales) { sales = it } }
             item { NumberField("Jumlah Stok (unit)", "Masukkan jumlah stok", stock) { stock = it } }
@@ -233,9 +256,15 @@ fun InputScreen(
                         val parsedSales = sales.toIntOrNull()
                         val parsedStock = stock.toIntOrNull()
                         val parsedDemand = demand.toIntOrNull()
-                        val normalizedPhoneType = phoneType.trim()
-                        if (normalizedPhoneType.isBlank()) {
-                            error = "Jenis HP wajib diisi."
+                        val normalizedBrand = phoneBrand.trim()
+                        val normalizedModel = phoneModel.trim()
+                        val normalizedPhoneType = buildPhoneType(normalizedBrand, normalizedModel)
+                        if (normalizedBrand.isBlank()) {
+                            error = "Merek HP wajib dipilih."
+                            return@Button
+                        }
+                        if (normalizedModel.isBlank()) {
+                            error = "Tipe HP wajib diisi."
                             return@Button
                         }
                         if (parsedSales == null || parsedStock == null || parsedDemand == null) {
@@ -259,7 +288,7 @@ fun InputScreen(
                 }
             }
             result?.let {
-                item { ResultCard(phoneType.trim(), it) }
+                item { ResultCard(buildPhoneType(phoneBrand, phoneModel), it) }
                 item {
                     FuzzyGraphSection(
                         sales = sales.toIntOrNull() ?: 0,
@@ -291,6 +320,9 @@ fun DataScreen(records: List<SalesRecord>, onDetail: (Long) -> Unit) {
             }
         }
     }
+    val groupedRecords = remember(filteredRecords) {
+        phoneRecordGroups(filteredRecords)
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -320,8 +352,13 @@ fun DataScreen(records: List<SalesRecord>, onDetail: (Long) -> Unit) {
         if (records.isNotEmpty() && filteredRecords.isEmpty()) {
             item { EmptyState("Data tidak ditemukan untuk pencarian ini.") }
         }
-        items(filteredRecords, key = { it.id }) { record ->
-            RecordCard(record, onClick = { onDetail(record.id) })
+        groupedRecords.forEach { group ->
+            item(key = "brand-${group.brand}") {
+                PhoneBrandHeader(group.brand, group.records.size)
+            }
+            items(group.records, key = { it.id }) { record ->
+                RecordCard(record, onClick = { onDetail(record.id) }, showModelOnly = true)
+            }
         }
     }
 }

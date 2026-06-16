@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,6 +48,8 @@ import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,11 +62,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -77,6 +85,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.ade.fuzzyrisk.R
 import com.ade.fuzzyrisk.data.SalesRecord
 import com.ade.fuzzyrisk.domain.FuzzyGraphSpec
@@ -85,11 +94,16 @@ import com.ade.fuzzyrisk.domain.FuzzyTsukamotoCalculator
 import com.ade.fuzzyrisk.ui.ChartBlue
 import com.ade.fuzzyrisk.ui.Danger
 import com.ade.fuzzyrisk.ui.NumberFormat
+import com.ade.fuzzyrisk.ui.PhoneModelOption
+import com.ade.fuzzyrisk.ui.PhoneTypeGroup
 import com.ade.fuzzyrisk.ui.Success
 import com.ade.fuzzyrisk.ui.Warning
 import com.ade.fuzzyrisk.ui.dateText
 import com.ade.fuzzyrisk.ui.percent
-import com.ade.fuzzyrisk.ui.phoneTypesForRisk
+import com.ade.fuzzyrisk.ui.phoneBrandName
+import com.ade.fuzzyrisk.ui.phoneImageUrl
+import com.ade.fuzzyrisk.ui.phoneModelName
+import com.ade.fuzzyrisk.ui.phoneTypeGroupsForRisk
 import com.ade.fuzzyrisk.ui.riskColor
 import com.ade.fuzzyrisk.ui.riskFromZ
 
@@ -214,6 +228,129 @@ fun TextInputField(label: String, placeholder: String, value: String, onValueCha
             singleLine = true,
             shape = RoundedCornerShape(8.dp)
         )
+    }
+}
+
+@Composable
+fun PhoneBrandDropdownField(
+    label: String,
+    placeholder: String,
+    brands: List<String>,
+    selectedBrand: String,
+    onBrandSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Text(label, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        Box(Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = selectedBrand,
+                onValueChange = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = true },
+                placeholder = { Text(placeholder) },
+                leadingIcon = { Icon(Icons.Filled.PhoneAndroid, contentDescription = null) },
+                trailingIcon = {
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Pilih merek HP")
+                    }
+                },
+                readOnly = true,
+                singleLine = true,
+                shape = RoundedCornerShape(8.dp)
+            )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                brands.forEach { brand ->
+                    DropdownMenuItem(
+                        text = { Text(brand) },
+                        leadingIcon = { Icon(Icons.Filled.PhoneAndroid, contentDescription = null) },
+                        onClick = {
+                            onBrandSelected(brand)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PhoneModelDropdownField(
+    label: String,
+    placeholder: String,
+    models: List<PhoneModelOption>,
+    selectedModel: String,
+    enabled: Boolean,
+    onModelSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val modelGroups = remember(models) { models.groupBy { it.year } }
+
+    Column {
+        Text(label, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        Box(Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = selectedModel,
+                onValueChange = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = enabled) { expanded = true },
+                enabled = enabled,
+                placeholder = { Text(placeholder) },
+                leadingIcon = { Icon(Icons.Filled.PhoneAndroid, contentDescription = null) },
+                trailingIcon = {
+                    IconButton(
+                        onClick = { expanded = !expanded },
+                        enabled = enabled
+                    ) {
+                        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Pilih tipe HP")
+                    }
+                },
+                readOnly = true,
+                singleLine = true,
+                shape = RoundedCornerShape(8.dp)
+            )
+            DropdownMenu(
+                expanded = expanded && enabled,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp)
+            ) {
+                modelGroups.forEach { (year, yearModels) ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                year,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        },
+                        enabled = false,
+                        onClick = {}
+                    )
+                    yearModels.forEach { model ->
+                        DropdownMenuItem(
+                            text = { Text(model.name) },
+                            leadingIcon = { Icon(Icons.Filled.PhoneAndroid, contentDescription = null) },
+                            onClick = {
+                                onModelSelected(model.name)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -359,11 +496,70 @@ fun FuzzyMembershipChart(spec: FuzzyGraphSpec) {
 }
 
 @Composable
-fun RecordCard(record: SalesRecord, onClick: () -> Unit) {
+fun PhoneBrandHeader(brand: String, count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Filled.PhoneAndroid, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(brand, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+            Text("$count data penjualan", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+fun RecordCard(record: SalesRecord, onClick: () -> Unit, showModelOnly: Boolean = false) {
+    val brand = phoneBrandName(record.phoneType)
+    val title = if (showModelOnly) phoneModelName(record.phoneType, brand) else record.phoneType
+    val imageUrl = phoneImageUrl(record.phoneType)
+    var imageFailed by remember(record.phoneType) { mutableStateOf(false) }
     AppCard(modifier = Modifier.clickable(onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageUrl != null && !imageFailed) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = title.ifBlank { record.phoneType },
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        onError = { imageFailed = true }
+                    )
+                } else {
+                    Icon(
+                        Icons.Filled.PhoneAndroid,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(record.phoneType, fontWeight = FontWeight.Bold)
+                Text(
+                    title.ifBlank { record.phoneType },
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Text(record.dateText(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
             RiskChip(record.riskLevel)
@@ -500,7 +696,7 @@ fun PhoneRiskOverview(records: List<SalesRecord>) {
 
 @Composable
 fun PhoneRiskLine(level: String, records: List<SalesRecord>) {
-    val names = phoneTypesForRisk(records, level)
+    val groups = phoneTypeGroupsForRisk(records, level)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -515,14 +711,18 @@ fun PhoneRiskLine(level: String, records: List<SalesRecord>) {
                 .background(riskColor(level))
         )
         Spacer(Modifier.width(10.dp))
-        Column {
+        Column(Modifier.weight(1f)) {
             Text(level, fontWeight = FontWeight.Bold, color = riskColor(level))
-            Text(
-                if (names.isEmpty()) "Belum ada jenis HP dengan risiko ${level.lowercase()}."
-                else names.joinToString(", "),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 20.sp
-            )
+            if (groups.isEmpty()) {
+                Text(
+                    "Belum ada jenis HP dengan risiko ${level.lowercase()}.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp
+                )
+            } else {
+                Spacer(Modifier.height(6.dp))
+                PhoneTypeGroupList(groups = groups, color = riskColor(level))
+            }
         }
     }
 }
@@ -580,16 +780,56 @@ fun CategoryCard(title: String, desc: String, color: Color) {
 
 @Composable
 fun CategoryPhoneCard(title: String, level: String, records: List<SalesRecord>) {
-    val names = phoneTypesForRisk(records, level)
+    val groups = phoneTypeGroupsForRisk(records, level)
     AppCard {
-        Text(title, fontWeight = FontWeight.Bold, color = riskColor(level))
-        Spacer(Modifier.height(6.dp))
-        Text(
-            if (names.isEmpty()) "Belum ada data. Input jenis HP dan hitung risiko untuk melihat daftar ini."
-            else names.joinToString("\n") { "- $it" },
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            lineHeight = 21.sp
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.PhoneAndroid, contentDescription = null, tint = riskColor(level), modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(title, fontWeight = FontWeight.Bold, color = riskColor(level))
+        }
+        Spacer(Modifier.height(10.dp))
+        if (groups.isEmpty()) {
+            Text(
+                "Belum ada data. Input jenis HP dan hitung risiko untuk melihat daftar ini.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 21.sp
+            )
+        } else {
+            PhoneTypeGroupList(groups = groups, color = riskColor(level))
+        }
+    }
+}
+
+@Composable
+private fun PhoneTypeGroupList(groups: List<PhoneTypeGroup>, color: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        groups.forEach { group ->
+            PhoneTypeGroupRow(group = group, color = color)
+        }
+    }
+}
+
+@Composable
+private fun PhoneTypeGroupRow(group: PhoneTypeGroup, color: Color) {
+    Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(color.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Filled.PhoneAndroid, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(group.brand, fontWeight = FontWeight.Bold)
+            Text(
+                group.models.joinToString(", "),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 20.sp
+            )
+        }
     }
 }
 
