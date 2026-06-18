@@ -81,6 +81,16 @@ private val PhoneBrandLabels = mapOf(
 
 const val OtherPhoneBrand = "Lainnya"
 
+private val PhoneImageSearchAliases = mapOf(
+    "oppo a6x" to "OPPO A6X",
+    "realme 60x" to "realme Note 60X",
+    "realme note 60x" to "realme Note 60X",
+    "redmi note 15c" to "Redmi Note 15C",
+    "samsung a26" to "Samsung Galaxy A26 5G",
+    "samsung galaxy a26 5g" to "Samsung Galaxy A26 5G",
+    "infinix smart 20" to "Infinix Smart 20"
+)
+
 val PhoneCatalog = listOf(
     PhoneCatalogGroup(
         brand = "OPPO",
@@ -106,6 +116,7 @@ val PhoneCatalog = listOf(
             ),
             "2026" to listOf(
                 "OPPO A6c",
+                "A6X",
                 "Find X9s",
                 "Find X9 Ultra",
                 "Reno15 5G",
@@ -158,6 +169,7 @@ val PhoneCatalog = listOf(
                 "Redmi A7 Pro",
                 "Redmi Note 15 4G",
                 "Redmi Note 15 5G",
+                "Redmi Note 15C",
                 "Redmi Note 15 Pro 5G",
                 "Redmi Note 15 Pro+ 5G"
             )
@@ -196,6 +208,7 @@ val PhoneCatalog = listOf(
                 "S25 Ultra",
                 "S25 Edge",
                 "S25 FE",
+                "A26",
                 "Galaxy A26 5G",
                 "A36 5G",
                 "A56 5G",
@@ -221,7 +234,8 @@ val PhoneCatalog = listOf(
         brand = "realme",
         modelsByYear = mapOf(
             "2025" to listOf(
-                "realme Note 60x",
+                "realme Note 60X",
+                "60X",
                 "C71",
                 "P3 5G",
                 "14 5G",
@@ -345,7 +359,8 @@ fun buildPhoneType(brand: String, model: String): String {
 fun phoneImageUrl(phoneType: String): String? {
     val cleaned = normalizedPhoneType(phoneType)
     if (cleaned.isBlank()) return null
-    val query = URLEncoder.encode("$cleaned official phone product image", StandardCharsets.UTF_8.name())
+    val searchName = PhoneImageSearchAliases[cleaned.lowercase(Locale.getDefault())] ?: cleaned
+    val query = URLEncoder.encode("$searchName official phone product image", StandardCharsets.UTF_8.name())
     return "https://tse1.mm.bing.net/th?q=$query&w=160&h=160&c=7&rs=1&p=0&o=5&pid=1.7"
 }
 

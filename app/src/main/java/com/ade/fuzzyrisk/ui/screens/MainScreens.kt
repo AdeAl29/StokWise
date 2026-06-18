@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -80,6 +81,7 @@ import com.ade.fuzzyrisk.ui.components.MenuCard
 import com.ade.fuzzyrisk.ui.components.NumberField
 import com.ade.fuzzyrisk.ui.components.PhoneBrandDropdownField
 import com.ade.fuzzyrisk.ui.components.PhoneBrandHeader
+import com.ade.fuzzyrisk.ui.components.PhoneImageThumbnail
 import com.ade.fuzzyrisk.ui.components.PhoneModelDropdownField
 import com.ade.fuzzyrisk.ui.components.PhoneRiskOverview
 import com.ade.fuzzyrisk.ui.components.ProcessCard
@@ -87,6 +89,7 @@ import com.ade.fuzzyrisk.ui.components.RecordCard
 import com.ade.fuzzyrisk.ui.components.ResultCard
 import com.ade.fuzzyrisk.ui.components.RiskHeroCard
 import com.ade.fuzzyrisk.ui.components.RiskSummaryBox
+import com.ade.fuzzyrisk.ui.components.SelectedPhoneCard
 import com.ade.fuzzyrisk.ui.components.SimpleTopBar
 import com.ade.fuzzyrisk.ui.components.SummaryCard
 import com.ade.fuzzyrisk.ui.components.SummaryRow
@@ -207,6 +210,7 @@ fun InputScreen(
     var result by remember { mutableStateOf<FuzzyResult?>(null) }
     var error by rememberSaveable { mutableStateOf("") }
     val phoneModelOptions = remember(phoneBrand) { phoneModelsForBrand(phoneBrand) }
+    val selectedPhoneType = remember(phoneBrand, phoneModel) { buildPhoneType(phoneBrand, phoneModel) }
 
     Scaffold(
         topBar = { SimpleTopBar("Input Data Baru", onBack) },
@@ -243,6 +247,9 @@ fun InputScreen(
                     enabled = phoneBrand.isNotBlank(),
                     onModelSelected = { phoneModel = it }
                 )
+            }
+            if (phoneModel.isNotBlank()) {
+                item { SelectedPhoneCard(selectedPhoneType) }
             }
             item { NumberField("Jumlah Penjualan (unit)", "Masukkan jumlah penjualan", sales) { sales = it } }
             item { NumberField("Jumlah Stok (unit)", "Masukkan jumlah stok", stock) { stock = it } }
@@ -288,7 +295,7 @@ fun InputScreen(
                 }
             }
             result?.let {
-                item { ResultCard(buildPhoneType(phoneBrand, phoneModel), it) }
+                item { ResultCard(selectedPhoneType, it) }
                 item {
                     FuzzyGraphSection(
                         sales = sales.toIntOrNull() ?: 0,
@@ -387,7 +394,20 @@ fun DetailScreen(record: SalesRecord?, onBack: () -> Unit) {
                 AppCard {
                     Text("Data Input", fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(10.dp))
-                    SummaryRow(Icons.Filled.PhoneAndroid, "Jenis HP", record.phoneType)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PhoneImageThumbnail(
+                            phoneType = record.phoneType,
+                            contentDescription = record.phoneType,
+                            modifier = Modifier.size(58.dp),
+                            iconSize = 30.dp
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Jenis HP", fontWeight = FontWeight.SemiBold)
+                            Text(record.phoneType, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
                     SummaryRow(Icons.Outlined.LocalMall, "Penjualan", "${record.sales} unit")
                     SummaryRow(Icons.Outlined.Inventory2, "Stok", "${record.stock} unit")
                     SummaryRow(Icons.Outlined.People, "Permintaan", "${record.demand} unit")

@@ -372,12 +372,82 @@ fun NumberField(label: String, placeholder: String, value: String, onValueChange
 }
 
 @Composable
+fun PhoneImageThumbnail(
+    phoneType: String,
+    contentDescription: String,
+    modifier: Modifier = Modifier.size(54.dp),
+    iconSize: Dp = 28.dp
+) {
+    val imageUrl = phoneImageUrl(phoneType)
+    var imageFailed by remember(phoneType) { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (imageUrl != null && !imageFailed) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(4.dp),
+                onError = { imageFailed = true }
+            )
+        } else {
+            Icon(
+                Icons.Filled.PhoneAndroid,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(iconSize)
+            )
+        }
+    }
+}
+
+@Composable
+fun SelectedPhoneCard(phoneType: String) {
+    AppCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PhoneImageThumbnail(
+                phoneType = phoneType,
+                contentDescription = phoneType,
+                modifier = Modifier.size(64.dp),
+                iconSize = 32.dp
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("HP Dipilih", fontWeight = FontWeight.Bold)
+                Text(
+                    phoneType,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun ResultCard(phoneType: String, result: FuzzyResult) {
     AppCard(horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Hasil Perhitungan", fontWeight = FontWeight.Bold)
         if (phoneType.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+            PhoneImageThumbnail(
+                phoneType = phoneType,
+                contentDescription = phoneType,
+                modifier = Modifier.size(84.dp),
+                iconSize = 36.dp
+            )
+            Spacer(Modifier.height(8.dp))
             Text(phoneType, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
+        Spacer(Modifier.height(8.dp))
         Text("Tingkat Risiko", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             result.riskLevel.label.uppercase(),
@@ -524,34 +594,12 @@ fun PhoneBrandHeader(brand: String, count: Int) {
 fun RecordCard(record: SalesRecord, onClick: () -> Unit, showModelOnly: Boolean = false) {
     val brand = phoneBrandName(record.phoneType)
     val title = if (showModelOnly) phoneModelName(record.phoneType, brand) else record.phoneType
-    val imageUrl = phoneImageUrl(record.phoneType)
-    var imageFailed by remember(record.phoneType) { mutableStateOf(false) }
     AppCard(modifier = Modifier.clickable(onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (imageUrl != null && !imageFailed) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = title.ifBlank { record.phoneType },
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        onError = { imageFailed = true }
-                    )
-                } else {
-                    Icon(
-                        Icons.Filled.PhoneAndroid,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
+            PhoneImageThumbnail(
+                phoneType = record.phoneType,
+                contentDescription = title.ifBlank { record.phoneType }
+            )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
