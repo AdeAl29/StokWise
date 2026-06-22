@@ -5,6 +5,7 @@ data class SalesRecord(
     val dateMillis: Long = System.currentTimeMillis(),
     val phoneType: String,
     val sales: Int,
+    val incomingStock: Int = 0,
     val stock: Int,
     val demand: Int,
     val riskLevel: String,

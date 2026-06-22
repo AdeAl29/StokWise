@@ -29,12 +29,20 @@ class FuzzyRiskViewModel(application: Application) : AndroidViewModel(applicatio
         return FuzzyTsukamotoCalculator.calculate(sales, stock, demand)
     }
 
-    fun save(phoneType: String, sales: Int, stock: Int, demand: Int, result: FuzzyResult) {
+    fun save(
+        phoneType: String,
+        sales: Int,
+        incomingStock: Int,
+        stock: Int,
+        demand: Int,
+        result: FuzzyResult
+    ) {
         viewModelScope.launch {
             repository.insert(
                 SalesRecord(
                     phoneType = phoneType,
                     sales = sales,
+                    incomingStock = incomingStock,
                     stock = stock,
                     demand = demand,
                     riskLevel = result.riskLevel.label,

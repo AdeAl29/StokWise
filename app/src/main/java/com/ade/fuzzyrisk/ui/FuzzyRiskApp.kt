@@ -85,14 +85,13 @@ fun FuzzyRiskApp(
                     records = state.records,
                     darkTheme = darkTheme,
                     onThemeChange = onThemeChange,
-                    onInput = { navController.navigate("input") },
-                    onDetail = { navController.navigate("detail/$it") },
-                    onSeeAll = { navController.navigate("data") }
+                    onInput = { navController.navigate("input") }
                 )
             }
         }
         composable("input") {
             InputScreen(
+                records = state.records,
                 onBack = { navController.popBackStack() },
                 onCalculate = viewModel::calculate,
                 onSave = viewModel::save

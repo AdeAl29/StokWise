@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [SalesRecordEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class FuzzyRiskDatabase : RoomDatabase() {
@@ -28,7 +28,7 @@ abstract class FuzzyRiskDatabase : RoomDatabase() {
                     FuzzyRiskDatabase::class.java,
                     DB_NAME
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }
@@ -45,6 +45,14 @@ abstract class FuzzyRiskDatabase : RoomDatabase() {
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 normalizeSalesRecordsTable(db)
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE sales_records ADD COLUMN incomingStock INTEGER NOT NULL DEFAULT 0"
+                )
             }
         }
 

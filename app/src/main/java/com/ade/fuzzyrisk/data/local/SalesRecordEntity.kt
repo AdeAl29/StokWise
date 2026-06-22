@@ -1,5 +1,6 @@
 package com.ade.fuzzyrisk.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -10,6 +11,8 @@ data class SalesRecordEntity(
     val dateMillis: Long,
     val phoneType: String,
     val sales: Int,
+    @ColumnInfo(defaultValue = "0")
+    val incomingStock: Int = 0,
     val stock: Int,
     val demand: Int,
     val riskLevel: String,

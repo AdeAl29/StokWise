@@ -193,8 +193,9 @@ fun SummaryCard(record: SalesRecord?) {
         Text("Ringkasan Hari Ini", fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
         SummaryRow(Icons.Filled.PhoneAndroid, "Jenis HP", record?.phoneType ?: "-")
+        SummaryRow(Icons.Filled.Add, "Barang Masuk", "${record?.incomingStock ?: 0} unit")
         SummaryRow(Icons.Outlined.LocalMall, "Penjualan", "${record?.sales ?: 0} unit")
-        SummaryRow(Icons.Outlined.Inventory2, "Stok", "${record?.stock ?: 0} unit")
+        SummaryRow(Icons.Outlined.Inventory2, "Stok Akhir", "${record?.stock ?: 0} unit")
         SummaryRow(Icons.Outlined.People, "Permintaan", "${record?.demand ?: 0} unit")
     }
 }
@@ -613,8 +614,9 @@ fun RecordCard(record: SalesRecord, onClick: () -> Unit, showModelOnly: Boolean 
             RiskChip(record.riskLevel)
         }
         Spacer(Modifier.height(10.dp))
+        Text("Barang Masuk : ${record.incomingStock} unit", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text("Penjualan : ${record.sales} unit", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Stok : ${record.stock} unit", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Stok Akhir : ${record.stock} unit", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text("Permintaan : ${record.demand} unit", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
         Text("Lihat Detail", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
@@ -688,7 +690,7 @@ fun TrendChart(records: List<SalesRecord>) {
         drawSeries(records.map { it.demand }, Success)
     }
     Spacer(Modifier.height(12.dp))
-    LegendRow(ChartBlue, "Penjualan", Warning, "Stok", Success, "Permintaan")
+    LegendRow(ChartBlue, "Penjualan", Warning, "Stok Akhir", Success, "Permintaan")
 }
 
 @Composable
