@@ -91,7 +91,6 @@ fun FuzzyRiskApp(
         }
         composable("input") {
             InputScreen(
-                records = state.records,
                 onBack = { navController.popBackStack() },
                 onCalculate = viewModel::calculate,
                 onSave = viewModel::save

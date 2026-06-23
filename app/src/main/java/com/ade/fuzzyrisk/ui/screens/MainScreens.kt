@@ -184,32 +184,19 @@ fun DashboardScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InputScreen(
-    records: List<SalesRecord>,
     onBack: () -> Unit,
     onCalculate: (Int, Int, Int) -> FuzzyResult,
-    onSave: (String, Int, Int, Int, Int, FuzzyResult) -> Unit
+    onSave: (String, Int, Int, Int, FuzzyResult) -> Unit
 ) {
     var phoneBrand by rememberSaveable { mutableStateOf("") }
     var phoneModel by rememberSaveable { mutableStateOf("") }
     var sales by rememberSaveable { mutableStateOf("") }
-    var incomingStock by rememberSaveable { mutableStateOf("") }
+    var stock by rememberSaveable { mutableStateOf("") }
     var demand by rememberSaveable { mutableStateOf("") }
     var result by remember { mutableStateOf<FuzzyResult?>(null) }
-    var calculatedSales by rememberSaveable { mutableStateOf(0) }
-    var calculatedStock by rememberSaveable { mutableStateOf(0) }
-    var calculatedDemand by rememberSaveable { mutableStateOf(0) }
     var error by rememberSaveable { mutableStateOf("") }
     val phoneModelOptions = remember(phoneBrand) { phoneModelsForBrand(phoneBrand) }
     val selectedPhoneType = remember(phoneBrand, phoneModel) { buildPhoneType(phoneBrand, phoneModel) }
-    val previousStock = remember(records, selectedPhoneType) {
-        if (selectedPhoneType.isBlank()) return@remember 0
-        records
-            .firstOrNull { it.phoneType.equals(selectedPhoneType, ignoreCase = true) }
-            ?.stock ?: 0
-    }
-    val previewSales = sales.toIntOrNull() ?: 0
-    val previewIncomingStock = incomingStock.toIntOrNull() ?: 0
-    val previewFinalStock = previousStock + previewIncomingStock - previewSales
 
     Scaffold(
         topBar = { SimpleTopBar("Input Data Baru", onBack) },
@@ -250,25 +237,9 @@ fun InputScreen(
             if (phoneModel.isNotBlank()) {
                 item { SelectedPhoneCard(selectedPhoneType) }
             }
-            item { NumberField("Barang Masuk (unit)", "Masukkan barang masuk", incomingStock) { incomingStock = it } }
             item { NumberField("Jumlah Penjualan (unit)", "Masukkan jumlah penjualan", sales) { sales = it } }
+            item { NumberField("Jumlah Stok (unit)", "Masukkan jumlah stok", stock) { stock = it } }
             item { NumberField("Jumlah Permintaan (unit)", "Masukkan jumlah permintaan", demand) { demand = it } }
-            if (phoneModel.isNotBlank()) {
-                item {
-                    AppCard {
-                        Text("Stok Otomatis", fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(10.dp))
-                        SummaryRow(Icons.Outlined.Inventory2, "Stok sebelumnya", "$previousStock unit")
-                        SummaryRow(Icons.Filled.Add, "Barang masuk", "$previewIncomingStock unit")
-                        SummaryRow(Icons.Outlined.LocalMall, "Penjualan", "$previewSales unit")
-                        SummaryRow(
-                            Icons.Outlined.Inventory2,
-                            "Stok akhir",
-                            "$previewFinalStock unit"
-                        )
-                    }
-                }
-            }
             if (error.isNotBlank()) {
                 item { Text(error, color = Danger, fontWeight = FontWeight.SemiBold) }
             }
@@ -276,7 +247,7 @@ fun InputScreen(
                 Button(
                     onClick = {
                         val parsedSales = sales.toIntOrNull()
-                        val parsedIncomingStock = incomingStock.toIntOrNull()
+                        val parsedStock = stock.toIntOrNull()
                         val parsedDemand = demand.toIntOrNull()
                         val normalizedBrand = phoneBrand.trim()
                         val normalizedModel = phoneModel.trim()
@@ -289,25 +260,17 @@ fun InputScreen(
                             error = "Tipe HP wajib diisi."
                             return@Button
                         }
-                        if (parsedSales == null || parsedIncomingStock == null || parsedDemand == null) {
-                            error = "Barang masuk, penjualan, dan permintaan harus berupa angka."
+                        if (parsedSales == null || parsedStock == null || parsedDemand == null) {
+                            error = "Penjualan, stok, dan permintaan harus berupa angka."
                             return@Button
                         }
-                        if (parsedSales < 0 || parsedIncomingStock < 0 || parsedDemand < 0) {
-                            error = "Barang masuk, penjualan, dan permintaan tidak boleh bernilai negatif."
+                        if (parsedSales < 0 || parsedStock < 0 || parsedDemand < 0) {
+                            error = "Penjualan, stok, dan permintaan tidak boleh bernilai negatif."
                             return@Button
                         }
-                        val finalStock = previousStock + parsedIncomingStock - parsedSales
-                        if (finalStock < 0) {
-                            error = "Stok akhir tidak boleh negatif. Tambahkan barang masuk atau kurangi penjualan."
-                            return@Button
-                        }
-                        val calculated = onCalculate(parsedSales, finalStock, parsedDemand)
-                        calculatedSales = parsedSales
-                        calculatedStock = finalStock
-                        calculatedDemand = parsedDemand
+                        val calculated = onCalculate(parsedSales, parsedStock, parsedDemand)
                         result = calculated
-                        onSave(normalizedPhoneType, parsedSales, parsedIncomingStock, finalStock, parsedDemand, calculated)
+                        onSave(normalizedPhoneType, parsedSales, parsedStock, parsedDemand, calculated)
                         error = ""
                     },
                     modifier = Modifier
@@ -321,9 +284,9 @@ fun InputScreen(
                 item { ResultCard(selectedPhoneType, it) }
                 item {
                     FuzzyGraphSection(
-                        sales = calculatedSales,
-                        stock = calculatedStock,
-                        demand = calculatedDemand,
+                        sales = sales.toIntOrNull() ?: 0,
+                        stock = stock.toIntOrNull() ?: 0,
+                        demand = demand.toIntOrNull() ?: 0,
                         zValue = it.zValue
                     )
                 }
@@ -351,7 +314,6 @@ fun DataScreen(records: List<SalesRecord>, onDetail: (Long) -> Unit) {
                     record.phoneType.contains(normalizedQuery, ignoreCase = true) ||
                     record.dateText().contains(normalizedQuery, ignoreCase = true) ||
                     record.sales.toString().contains(normalizedQuery) ||
-                    record.incomingStock.toString().contains(normalizedQuery) ||
                     record.stock.toString().contains(normalizedQuery) ||
                     record.demand.toString().contains(normalizedQuery)
             matchesBrand && matchesQuery
@@ -461,9 +423,8 @@ fun DetailScreen(record: SalesRecord?, onBack: () -> Unit) {
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    SummaryRow(Icons.Filled.Add, "Barang Masuk", "${record.incomingStock} unit")
                     SummaryRow(Icons.Outlined.LocalMall, "Penjualan", "${record.sales} unit")
-                    SummaryRow(Icons.Outlined.Inventory2, "Stok Akhir", "${record.stock} unit")
+                    SummaryRow(Icons.Outlined.Inventory2, "Stok", "${record.stock} unit")
                     SummaryRow(Icons.Outlined.People, "Permintaan", "${record.demand} unit")
                 }
             }
@@ -501,7 +462,7 @@ fun StatisticScreen(records: List<SalesRecord>) {
     ) {
         item {
             Text("Riwayat / Statistik", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("Tren penjualan, stok akhir, dan permintaan", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Tren penjualan, stok, dan permintaan", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item { InsightCard(records) }
         item {
